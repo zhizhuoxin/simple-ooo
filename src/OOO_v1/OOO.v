@@ -239,8 +239,14 @@ module OOO(
       // STEP.3: wakeup
       for (i=0; i<`ROB_SIZE; i=i+1) begin
         if (ROB_state[i]==`STALLED &&
-            !ROB_rs1_stall[i] && !ROB_rs2_stall[i])
+            !ROB_rs1_stall[i] && !ROB_rs2_stall[i]) begin
+`ifdef DELAY_LOAD_COMMIT
+          if (ROB_op[i] != `INST_OP_LD || i == ROB_head)
+            ROB_state[i] <= `READY;
+`else
           ROB_state [i] <= `READY;
+`endif
+        end
       end
 
 
@@ -287,7 +293,11 @@ module OOO(
   assign ROB_full  = ROB_state[ROB_tail] != `IDLE;
   assign ROB_empty = ROB_state[ROB_head] == `IDLE;
 
-
+  wire [`MEMD_SIZE_LOG-1:0] ROB_mem_addr[`ROB_SIZE-1:0];
+  generate for(p=0; p<`ROB_SIZE; p=p+1) begin
+    assign ROB_mem_addr[p] = (ROB_state[p]==`READY && ROB_mem_valid[p]) ? mem_addr[p] : 0;
+    // assign ROB_mem_addr[p] = (ROB_state[p]==`READY && ROB_mem_valid[p]) ? mem_addr[p] : 1;
+  end endgenerate
 
 
   // STEP: Execute + Memory Read
@@ -296,10 +306,10 @@ module OOO(
   always @(posedge clk) begin
     if (rst) begin
 `ifdef INIT_MEMD_CUSTOMIZED
-        memd[0] <= 0;
-        memd[1] <= 1;
-        memd[2] <= 0;
-        memd[3] <= 0;
+        memd[0] <= 2;
+        memd[1] <= 3;
+        memd[2] <= 3;
+        memd[3] <= 3;
 `else
       for (i=0; i<`MEMD_SIZE; i=i+1)
         memd[i] <= 0;
@@ -353,6 +363,7 @@ module OOO(
 
   wire [`MEMI_SIZE_LOG-1:0] C_pc;
   wire [`INST_SIZE_LOG-1:0] C_op;
+  wire [`MEMD_SIZE_LOG-1:0] C_addr;
 
   assign C_valid = ROB_state[ROB_head]==`FINISHED;
 
@@ -366,12 +377,18 @@ module OOO(
   assign C_next_pc = ROB_next_pc[ROB_head];
   assign C_pc      = C_valid ? ROB_pc[ROB_head] : 0;
   assign C_op      = C_valid ? ROB_op[ROB_head] : 0;
+  assign C_addr    = C_valid && C_op == `INST_OP_LD ? mem_addr[ROB_head] : 0;
 
 
   always @(posedge clk) begin
-    $display("Commit %x %x %x", C_valid, C_pc, C_op);
-    if (rst) F_pc <= 0;
-    else     F_pc <= F_next_pc;
+    $display(
+      "Commit %x%x%x %x, ROB LD %x%x%x%x %x%x%x%x", 
+      C_valid, C_pc, C_op, C_addr,
+      ROB_mem_addr[0], ROB_mem_addr[1],
+      ROB_mem_addr[2], ROB_mem_addr[3],
+      ROB_mem_addr[4], ROB_mem_addr[5],
+      ROB_mem_addr[6], ROB_mem_addr[7],
+    );
   end
 
 

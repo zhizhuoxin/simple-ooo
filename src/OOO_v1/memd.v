@@ -32,9 +32,9 @@ module memd(
     if (rst) begin
 `ifdef INIT_MEMD_CUSTOMIZED
         memd[0] <= 2;
-        memd[1] <= 1;
-        memd[2] <= 0;
-        memd[3] <= 0;
+        memd[1] <= 3;
+        memd[2] <= 3;
+        memd[3] <= 3;
 `else
       for (i=0; i<`MEMD_SIZE; i=i+1)
         memd[i] <= 0;
