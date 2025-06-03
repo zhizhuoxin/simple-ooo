@@ -351,6 +351,9 @@ module OOO(
   wire                      C_squash;
   wire [`MEMI_SIZE_LOG-1:0] C_next_pc;
 
+  wire [`MEMI_SIZE_LOG-1:0] C_pc;
+  wire [`INST_SIZE_LOG-1:0] C_op;
+
   assign C_valid = ROB_state[ROB_head]==`FINISHED;
 
   assign C_wen     = ROB_wen    [ROB_head];
@@ -361,6 +364,15 @@ module OOO(
   assign C_taken   = ROB_taken  [ROB_head];
   assign C_squash  = C_is_br && (ROB_predicted_taken[ROB_head] != ROB_taken[ROB_head]);
   assign C_next_pc = ROB_next_pc[ROB_head];
+  assign C_pc      = C_valid ? ROB_pc[ROB_head] : 0;
+  assign C_op      = C_valid ? ROB_op[ROB_head] : 0;
+
+
+  always @(posedge clk) begin
+    $display("Commit %x %x %x", C_valid, C_pc, C_op);
+    if (rst) F_pc <= 0;
+    else     F_pc <= F_next_pc;
+  end
 
 
 

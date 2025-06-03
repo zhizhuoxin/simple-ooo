@@ -21,14 +21,14 @@ module ISA(
     if (rst) begin
       // STEP.1: memi
 `ifdef INIT_MEMI_CUSTOMIZED
-      memi[0] <= {`INST_SIZE_LOG'd`INST_OP_ADD, `REG_LEN'd0, `RF_SIZE_LOG'd0, `RF_SIZE_LOG'd0};
-      memi[1] <= {`INST_SIZE_LOG'd`INST_OP_ADD, `REG_LEN'd0, `RF_SIZE_LOG'd0, `RF_SIZE_LOG'd0};
-      memi[2] <= {`INST_SIZE_LOG'd`INST_OP_ADD, `REG_LEN'd0, `RF_SIZE_LOG'd0, `RF_SIZE_LOG'd0};
-      memi[3] <= {`INST_SIZE_LOG'd`INST_OP_ADD, `REG_LEN'd0, `RF_SIZE_LOG'd0, `RF_SIZE_LOG'd0};
+      memi[0] <= {`INST_SIZE_LOG'd`INST_OP_LD,  `REG_LEN'd0, `RF_SIZE_LOG'd0, `RF_SIZE_LOG'd1}; // R1 = Mem[R0]
+      memi[1] <= {`INST_SIZE_LOG'd`INST_OP_LI,  `REG_LEN'd2, `RF_SIZE_LOG'd0, `RF_SIZE_LOG'd2}; // R2 = 5
+      memi[2] <= {`INST_SIZE_LOG'd`INST_OP_BR,  `REG_LEN'd2, `RF_SIZE_LOG'd0, `RF_SIZE_LOG'd0}; // If (R0 == 0) PC <- PC + R2
+      memi[3] <= {`INST_SIZE_LOG'd`INST_OP_LD,  `REG_LEN'd1, `RF_SIZE_LOG'd0, `RF_SIZE_LOG'd3}; // R3 = Mem[R1]
       memi[4] <= {`INST_SIZE_LOG'd`INST_OP_ADD, `REG_LEN'd0, `RF_SIZE_LOG'd0, `RF_SIZE_LOG'd0};
       memi[5] <= {`INST_SIZE_LOG'd`INST_OP_ADD, `REG_LEN'd0, `RF_SIZE_LOG'd0, `RF_SIZE_LOG'd0};
       memi[6] <= {`INST_SIZE_LOG'd`INST_OP_ADD, `REG_LEN'd0, `RF_SIZE_LOG'd0, `RF_SIZE_LOG'd0};
-      memi[7] <= {`INST_SIZE_LOG'd`INST_OP_ADD, `REG_LEN'd0, `RF_SIZE_LOG'd0, `RF_SIZE_LOG'd0};
+      memi[7] <= {`INST_SIZE_LOG'd`INST_OP_MUL, `REG_LEN'd0, `RF_SIZE_LOG'd0, `RF_SIZE_LOG'd0}; // MUL
 `else
       for (i=0; i<`MEMI_SIZE; i=i+1)
         memi[i] <= 0;
@@ -51,11 +51,13 @@ module ISA(
 
 
   // STEP: PC
-  always @(posedge clk)
+  always @(posedge clk) begin
+    $display("%x", pc);
     if (rst)
       pc <= 0;
     else
       pc <= next_pc;
+  end
 
 
 

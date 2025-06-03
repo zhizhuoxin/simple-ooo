@@ -3,7 +3,7 @@
 #include "Vtop.h"             // From Verilating "top.v"
 
 
-#define SIMU_CYCLE 1000
+#define SIMU_CYCLE 50
 
 
 uint64_t sc_time = 0;
