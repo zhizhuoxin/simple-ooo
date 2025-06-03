@@ -377,7 +377,7 @@ module OOO(
   assign C_next_pc = ROB_next_pc[ROB_head];
   assign C_pc      = C_valid ? ROB_pc[ROB_head] : 0;
   assign C_op      = C_valid ? ROB_op[ROB_head] : 0;
-  assign C_addr    = C_valid && C_op == `INST_OP_LD ? mem_addr[ROB_head] : 0;
+  assign C_addr    = C_valid && ROB_mem_valid[ROB_head] ? mem_addr[ROB_head] : 0;
 
 
   always @(posedge clk) begin
