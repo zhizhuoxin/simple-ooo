@@ -1,7 +1,10 @@
 import sys, os
 
 
-if __name__ == "__main__":
+
+
+
+def main():
     # STEP
     if len(sys.argv) <= 3:
         print("3 arguments needed!")
@@ -47,3 +50,7 @@ if __name__ == "__main__":
     command = f"build/{build_folder_name}/Vtop {build_folder_name}"
     print("[command to run]: ", command)
     assert os.system(command) == 0
+
+
+if __name__ == "__main__":
+    main()
