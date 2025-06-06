@@ -16,7 +16,7 @@ module OOO(
   genvar p;
 
   // STEP: PC
-  reg  [`MEMI_SIZE_LOG-1:0] F_pc;
+  reg  [`MEMI_SIZE_LOG-1:0] F_pc;  // is_public = 1
   always @(posedge clk) begin
     if (rst) F_pc <= 0;
     else     F_pc <= F_next_pc;
@@ -26,7 +26,7 @@ module OOO(
 
 
   // STEP: Fetch
-  wire [`INST_LEN-1:0] F_inst;
+  wire [`INST_LEN-1:0] F_inst; // is_public = 1
   memi memi_instance(
     .clk(clk), .rst(rst),
     .req_addr(F_pc), .resp_data(F_inst)
@@ -36,23 +36,23 @@ module OOO(
 
 
   // STEP: Decode
-  wire [`INST_SIZE_LOG-1:0] F_opcode;
+  wire [`INST_SIZE_LOG-1:0] F_opcode; // is_public = 1
 
-  wire                      F_rs1_used;
-  wire [`REG_LEN-1      :0] F_rs1_imm;
-  wire [`MEMI_SIZE_LOG-1:0] F_rs1_br_offset;
-  wire [`RF_SIZE_LOG-1  :0] F_rs1;
+  wire                      F_rs1_used; // is_public = 1
+  wire [`REG_LEN-1      :0] F_rs1_imm; // is_public = 1
+  wire [`MEMI_SIZE_LOG-1:0] F_rs1_br_offset; // is_public = 1
+  wire [`RF_SIZE_LOG-1  :0] F_rs1; // is_public = 1
 
-  wire                      F_rs2_used;
-  wire [`RF_SIZE_LOG-1  :0] F_rs2;
+  wire                      F_rs2_used; // is_public = 1
+  wire [`RF_SIZE_LOG-1  :0] F_rs2; // is_public = 1
 
-  wire                    F_wen;
-  wire [`RF_SIZE_LOG-1:0] F_rd;
-  wire                    F_rd_data_use_alu;
+  wire                    F_wen; // is_public = 1
+  wire [`RF_SIZE_LOG-1:0] F_rd; // is_public = 1
+  wire                    F_rd_data_use_alu; // is_public = 1
 
-  wire F_mem_valid;
+  wire F_mem_valid; // is_public = 1
 
-  wire F_is_br;
+  wire F_is_br; // is_public = 1
 
   decode decode_instance(
     .inst(F_inst),
@@ -68,8 +68,8 @@ module OOO(
 
 
   // STEP: rf Read Write
-  wire [`REG_LEN-1:0] F_rs1_data_rf;
-  wire [`REG_LEN-1:0] F_rs2_data_rf;
+  wire [`REG_LEN-1:0] F_rs1_data_rf; // is_public = 0
+  wire [`REG_LEN-1:0] F_rs2_data_rf; // is_public = 0
   rf rf_instance(
     .clk(clk), .rst(rst),
     .rs1(F_rs1), .rs1_data(F_rs1_data_rf),
@@ -81,8 +81,8 @@ module OOO(
 
 
   // STEP: PC Prediction
-  wire                      F_predicted_taken;
-  wire [`MEMI_SIZE_LOG-1:0] F_next_pc;
+  wire                      F_predicted_taken; // is_public = 1
+  wire [`MEMI_SIZE_LOG-1:0] F_next_pc; // is_public = 1 // TODO: it is not trivial to prove this one!
 
   assign F_predicted_taken = 1'b0;
   assign F_next_pc = (C_valid && C_squash)?           C_next_pc :
@@ -94,16 +94,16 @@ module OOO(
 
 
   // STEP: Rename Table
-  reg  [`RF_SIZE-1     :0] renameTB_valid;
-  reg  [`ROB_SIZE_LOG-1:0] renameTB_ROBlink [`RF_SIZE-1:0];
+  reg  [`RF_SIZE-1     :0] renameTB_valid; // is_public = 1
+  reg  [`ROB_SIZE_LOG-1:0] renameTB_ROBlink [`RF_SIZE-1:0]; // is_public = 1
 
-  wire                F_rs1_stall;
-  wire [`REG_LEN-1:0] F_rs1_data;
-  wire                F_rs2_stall;
-  wire [`REG_LEN-1:0] F_rs2_data;
+  wire                F_rs1_stall; // is_public = 1
+  wire [`REG_LEN-1:0] F_rs1_data;  // is_public = 0
+  wire                F_rs2_stall; // is_public = 1
+  wire [`REG_LEN-1:0] F_rs2_data;  // is_public = 0
 
   // STEP.: update rename table entries
-  wire renameTB_clearEntry, renameTB_addEntry, renameTB_clearAddConflict;
+  wire renameTB_clearEntry, renameTB_addEntry, renameTB_clearAddConflict; // is_public = 1
   assign renameTB_clearEntry = C_valid && C_wen && (renameTB_ROBlink[C_rd]==ROB_head);
   assign renameTB_addEntry   = !ROB_full && F_wen;
   assign renameTB_clearAddConflict = renameTB_addEntry && renameTB_clearEntry && F_rd==C_rd;
@@ -154,35 +154,54 @@ module OOO(
 
 
   // STEP: ROB
-  reg  [`ROB_STATE_LEN-1:0] ROB_state [`ROB_SIZE-1:0];
+  reg  [`ROB_STATE_LEN-1:0] ROB_state [`ROB_SIZE-1:0]; // is_public = 1
 
-  reg  [`MEMI_SIZE_LOG-1:0] ROB_pc [`ROB_SIZE-1:0];
-  reg  [`INST_SIZE_LOG-1:0] ROB_op [`ROB_SIZE-1:0];
+  reg  [`MEMI_SIZE_LOG-1:0] ROB_pc [`ROB_SIZE-1:0]; // is_public = 1
+  reg  [`INST_SIZE_LOG-1:0] ROB_op [`ROB_SIZE-1:0]; // is_public = 1
 
-  reg  [`ROB_SIZE-1     :0] ROB_rs1_stall;
-  reg  [`REG_LEN-1      :0] ROB_rs1_imm       [`ROB_SIZE-1:0];
-  reg  [`MEMI_SIZE_LOG-1:0] ROB_rs1_br_offset [`ROB_SIZE-1:0];
-  reg  [`REG_LEN-1      :0] ROB_rs1_data      [`ROB_SIZE-1:0];
-  reg  [`ROB_SIZE_LOG-1 :0] ROB_rs1_ROBlink   [`ROB_SIZE-1:0];
+  reg  [`ROB_SIZE-1     :0] ROB_rs1_stall; // is_public = 1
+  reg  [`REG_LEN-1      :0] ROB_rs1_imm       [`ROB_SIZE-1:0]; // is_public = 1
+  reg  [`MEMI_SIZE_LOG-1:0] ROB_rs1_br_offset [`ROB_SIZE-1:0]; // is_public = 1
+  reg  [`REG_LEN-1      :0] ROB_rs1_data      [`ROB_SIZE-1:0]; // is_public = 0
+  reg  [`ROB_SIZE_LOG-1 :0] ROB_rs1_ROBlink   [`ROB_SIZE-1:0]; // is_public = 1
 
-  reg  [`ROB_SIZE-1     :0] ROB_rs2_stall;
-  reg  [`REG_LEN-1      :0] ROB_rs2_data      [`ROB_SIZE-1:0];
-  reg  [`ROB_SIZE_LOG-1 :0] ROB_rs2_ROBlink   [`ROB_SIZE-1:0];
+  reg  [`ROB_SIZE-1     :0] ROB_rs2_stall; // is_public = 1
+  reg  [`REG_LEN-1      :0] ROB_rs2_data      [`ROB_SIZE-1:0]; // is_public = 0
+  reg  [`ROB_SIZE_LOG-1 :0] ROB_rs2_ROBlink   [`ROB_SIZE-1:0]; // is_public = 1
 
-  reg  [`ROB_SIZE-1     :0] ROB_mem_valid;
+  reg  [`ROB_SIZE-1     :0] ROB_mem_valid; // is_public = 1
 
-  reg  [`ROB_SIZE-1     :0] ROB_wen;
-  reg  [`RF_SIZE_LOG-1  :0] ROB_rd      [`ROB_SIZE-1:0];
-  reg  [`ROB_SIZE-1     :0] ROB_rd_data_use_alu;
-  reg  [`REG_LEN-1      :0] ROB_rd_data [`ROB_SIZE-1:0];
+  reg  [`ROB_SIZE-1     :0] ROB_wen; // is_public = 1
+  reg  [`RF_SIZE_LOG-1  :0] ROB_rd      [`ROB_SIZE-1:0]; // is_public = 1
+  reg  [`ROB_SIZE-1     :0] ROB_rd_data_use_alu;  // is_public = 1
+  reg  [`REG_LEN-1      :0] ROB_rd_data [`ROB_SIZE-1:0];  // is_public = 0
 
-  reg  [`ROB_SIZE-1     :0] ROB_is_br;
-  reg  [`ROB_SIZE-1     :0] ROB_predicted_taken;
-  reg  [`ROB_SIZE-1     :0] ROB_taken;
-  reg  [`MEMI_SIZE_LOG-1:0] ROB_next_pc [`ROB_SIZE-1:0];
+  reg  [`ROB_SIZE-1     :0] ROB_is_br;  // is_public = 1
+  reg  [`ROB_SIZE-1     :0] ROB_predicted_taken;  // is_public = 1
+  reg  [`ROB_SIZE-1     :0] ROB_taken;  // is_public is not constant
+  reg  [`ROB_SIZE-1]        ROB_taken_is_public;
+  reg  [`MEMI_SIZE_LOG-1:0] ROB_next_pc [`ROB_SIZE-1:0];  // is_public is not constant
+  reg  [`ROB_SIZE-1:0]      ROB_next_pc_is_public;
+  generate for (p = 0; p < `ROB_SIZE; p = p + 1) begin
+    ROB_taken_is_public[p] =
+      ROB_state[p] == `FINISHED &&
+      ROB_is_br[p] && ROB_commit_point[p]; // p == ROB_head;
 
-  reg  [`ROB_SIZE_LOG-1:0] ROB_head;
-  reg  [`ROB_SIZE_LOG-1:0] ROB_tail;
+    ROB_next_pc_is_public[p] = 
+      ROB_state[p] == `FINISHED && 
+      (!ROB_is_br[p] || ROB_commit_point[p]); // p == ROB_head);
+  end endgenerate
+
+  reg  [`ROB_SIZE_LOG-1:0] ROB_head; // is_public = 1
+  reg  [`ROB_SIZE_LOG-1:0] ROB_tail; // is_public = 1
+
+  wire ROB_full; // is_public = 1
+  wire ROB_empty; // is_public = 1
+
+  wire [`ROB_SIZE-1:0] ROB_commit_point; // is_public = 1
+  generate for (p = 0; p < `ROB_SIZE; p = p + 1) begin
+    ROB_commit_point[p] = ROB_state[p] != `IDLE && p == ROB_head;
+  end endgenerate
 
   wire ROB_full;
   wire ROB_empty;
@@ -293,7 +312,7 @@ module OOO(
   assign ROB_full  = ROB_state[ROB_tail] != `IDLE;
   assign ROB_empty = ROB_state[ROB_head] == `IDLE;
 
-  wire [`MEMD_SIZE_LOG-1:0] ROB_mem_addr[`ROB_SIZE-1:0];
+  wire [`MEMD_SIZE_LOG-1:0] ROB_mem_addr[`ROB_SIZE-1:0];  // is_public = 1 // TODO!!! This is not trival!
   generate for(p=0; p<`ROB_SIZE; p=p+1) begin
     assign ROB_mem_addr[p] = (ROB_state[p]==`READY && ROB_mem_valid[p]) ? mem_addr[p] : 0;
     // assign ROB_mem_addr[p] = (ROB_state[p]==`READY && ROB_mem_valid[p]) ? mem_addr[p] : 1;
@@ -302,7 +321,7 @@ module OOO(
 
   // STEP: Execute + Memory Read
   // STEP.X: Memory Read
-  reg [`REG_LEN-1:0] memd [`MEMD_SIZE-1:0];
+  reg [`REG_LEN-1:0] memd [`MEMD_SIZE-1:0];  // is_public = 0
   always @(posedge clk) begin
     if (rst) begin
 `ifdef INIT_MEMD_CUSTOMIZED
@@ -319,10 +338,19 @@ module OOO(
 
 
   // STEP.X: output from alu
-  wire [`MEMD_SIZE_LOG-1:0] mem_addr        [`ROB_SIZE-1:0];
-  wire [`REG_LEN-1      :0] ROB_rd_data_wire[`ROB_SIZE-1:0];
-  wire [`ROB_SIZE-1     :0] ROB_taken_wire;
-  wire [`MEMI_SIZE_LOG-1:0] ROB_next_pc_wire[`ROB_SIZE-1:0];
+  wire [`MEMD_SIZE_LOG-1:0] mem_addr        [`ROB_SIZE-1:0]; // is_public is not constant
+  wire [`ROB_SIZE-1:0]      mem_addr_is_public;
+  generate for (p = 0; p < `ROB_SIZE; p = p + 1) begin
+    mem_addr_is_public[p] = 
+      ROB_mem_valid[p] && // is load (mem_addr is meaningful)
+      (ROB_state[p] == `READY || ROB_state[p] == `FINISHED) && // mem_addr is calculated correctly
+      ROB_commit_point[p]; // reach commit point
+  end endgenerate
+
+  wire [`REG_LEN-1      :0] ROB_rd_data_wire[`ROB_SIZE-1:0]; // is_public = 0
+  wire [`ROB_SIZE-1     :0] ROB_taken_wire;                  // is_public = 1
+  wire [`MEMI_SIZE_LOG-1:0] ROB_next_pc_wire[`ROB_SIZE-1:0]; // is_public = 
+
   generate for (p=0; p <`ROB_SIZE; p=p+1) begin
   execute execute_instance(
     .pc(ROB_pc[p]),
@@ -350,20 +378,21 @@ module OOO(
 
 
   // STEP: Commit
-  wire                      C_valid;
+  wire                      C_valid; // is_public = 1
 
-  wire                      C_wen;
-  wire [`RF_SIZE_LOG-1  :0] C_rd;
-  wire [`REG_LEN-1      :0] C_rd_data;
+  wire                      C_wen; // is_public = 1
+  wire [`RF_SIZE_LOG-1  :0] C_rd; // is_public = 1
+  wire [`REG_LEN-1      :0] C_rd_data; // is_public = 0
 
-  wire                      C_is_br;
-  wire                      C_taken;
-  wire                      C_squash;
-  wire [`MEMI_SIZE_LOG-1:0] C_next_pc;
+  wire                      C_is_br; // is_public = 1
+  wire                      C_taken, C_taken_is_public; // is_public = C_valid && C_is_br, is not constant
+  wire                      C_squash, C_squash_is_public; // is_public = C_valid, is not constant
 
-  wire [`MEMI_SIZE_LOG-1:0] C_pc;
-  wire [`INST_SIZE_LOG-1:0] C_op;
-  wire [`MEMD_SIZE_LOG-1:0] C_addr;
+  wire [`MEMI_SIZE_LOG-1:0] C_next_pc, C_next_pc_is_public; // is_public = C_valid, is not constant
+
+  wire [`MEMI_SIZE_LOG-1:0] C_pc; // is_public = 1
+  wire [`INST_SIZE_LOG-1:0] C_op; // is_public = 1
+  wire [`MEMD_SIZE_LOG-1:0] C_addr; // is_public = 1 // already guarded by C_valid
 
   assign C_valid = ROB_state[ROB_head]==`FINISHED;
 
@@ -378,6 +407,11 @@ module OOO(
   assign C_pc      = C_valid ? ROB_pc[ROB_head] : 0;
   assign C_op      = C_valid ? ROB_op[ROB_head] : 0;
   assign C_addr    = C_valid && ROB_mem_valid[ROB_head] ? mem_addr[ROB_head] : 0;
+
+  // is_public for C_taken, C_squash, and C_next_pc
+  assign C_taken_is_public = C_valid && C_is_br;
+  assign C_squash_is_public = C_valid;
+  assign C_next_pc_is_public = C_valid;
 
 
   always @(posedge clk) begin
