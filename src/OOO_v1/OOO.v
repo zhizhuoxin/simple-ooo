@@ -34,6 +34,8 @@ module OOO(
       ROB_is_br_is_public[ROB_head] && ROB_predicted_taken_is_public[ROB_head] && ROB_taken[ROB_head] && // C_squash_is_public
       ((C_valid && C_squash) ? 
           ROB_next_pc_is_public[ROB_head] : // C_next_pc_is_public // TODO
+          // Proof 1: ROB_next_pc is the next pc of the commit instruction, which is arch next PC and should be public
+          // Proof 2: ROB_next_pc will eventually become the next committed PC.
           ROB_state_is_public[ROB_tail] && // ROB_full_is_public
             F_pc_is_public)
       // => F_inst_is_public (according to imem)
@@ -548,13 +550,26 @@ module OOO(
 
     assign ROB_mem_addr_is_public[p] =
       ROB_state_is_public[p] && ROB_mem_valid_is_public[p] &&
-      ((ROB_state[p]==`READY && ROB_mem_valid[p]) ? mem_addr_is_public[p] : 1);
+      ((ROB_state[p]==`READY && ROB_mem_valid[p]) ? (
+        mem_addr_is_public[p] || mem_addr[p] == commit_mem_addr_trace[commit_ctr]) : // Check this!
+        1
+      );
     // TODO!!!
-    // Lemma: (ROB_state[p]==`READY && ROB_mem_valid[p]) <=> p = ROB_head
+    // Lemma 1: (ROB_state[p]==`READY && ROB_mem_valid[p]) => p = ROB_head
+    // Lemma 2: ROB_state_next[p] == `FINISHED => ROB_mem_addr_curr = mem_addr_next = C_addr_next = commit_mem_addr_trace[commit_ctr]
 
     assign mem_addr_is_public[p] = ROB_rs1_data_is_public[p];
 
   end endgenerate
+
+  reg [`MEMD_SIZE_LOG-1:0] commit_mem_addr_trace [`N-1:0];
+  reg [63:0] commit_ctr;
+
+    always @(posedge clk) begin
+      if (C_valid) begin
+        commit_ctr <= commit_ctr + 1;
+      end
+    end
 
 
   // STEP: Execute + Memory Read
