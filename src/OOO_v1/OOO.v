@@ -40,7 +40,7 @@ module OOO(
 
   wire                      F_rs1_used; // is_public = 1
   wire [`REG_LEN-1      :0] F_rs1_imm; // is_public = 1
-  wire [`MEMI_SIZE_LOG-1:0] F_rs1_br_offset; // is_public = 1
+  wire [`MEMI_SIZE_LOG-1:0] F_rs1_br_offset; // is_public = 1 (it is not read from RF, but is from inst decoding)
   wire [`RF_SIZE_LOG-1  :0] F_rs1; // is_public = 1
 
   wire                      F_rs2_used; // is_public = 1
@@ -83,6 +83,8 @@ module OOO(
   // STEP: PC Prediction
   wire                      F_predicted_taken; // is_public = 1
   wire [`MEMI_SIZE_LOG-1:0] F_next_pc; // is_public = 1 // TODO: it is not trivial to prove this one!
+  // Proof: all input signals that determines F_next_pc is public except for C_squash and C_next_pc.
+  //    But C_squash and C_next_pc only affect F_next_pc when C_valid = 1, and they are public when C_valid = 1.
 
   assign F_predicted_taken = 1'b0;
   assign F_next_pc = (C_valid && C_squash)?           C_next_pc :
@@ -182,6 +184,7 @@ module OOO(
   reg  [`ROB_SIZE-1]        ROB_taken_is_public;
   reg  [`MEMI_SIZE_LOG-1:0] ROB_next_pc [`ROB_SIZE-1:0];  // is_public is not constant
   reg  [`ROB_SIZE-1:0]      ROB_next_pc_is_public;
+  // NOTE: this is inferred from the assumption that commit state is public.
   generate for (p = 0; p < `ROB_SIZE; p = p + 1) begin
     ROB_taken_is_public[p] =
       ROB_state[p] == `FINISHED &&
@@ -313,6 +316,11 @@ module OOO(
   assign ROB_empty = ROB_state[ROB_head] == `IDLE;
 
   wire [`MEMD_SIZE_LOG-1:0] ROB_mem_addr[`ROB_SIZE-1:0];  // is_public = 1 // TODO!!! This is not trival!
+  // Proof: We just need to prove that (ROB_state[p]==`READY && ROB_mem_valid[p]) => mem_addr_is_public[p],
+  //    and the key point is to prove (ROB_state[p]==`READY && ROB_mem_valid[p]) => ROB_commit_point[p].
+  //    Note that when ROB_mem_valid[p], ROB_state[p] = `READY means that in the last cycle, ROB_state[p] = `STALLED and ROB_head = p
+  //    Then, this cycle there must still be ROB_head = p (since no commit or squash in the last cycle).
+  //    Therefore, the statement holds.
   generate for(p=0; p<`ROB_SIZE; p=p+1) begin
     assign ROB_mem_addr[p] = (ROB_state[p]==`READY && ROB_mem_valid[p]) ? mem_addr[p] : 0;
     // assign ROB_mem_addr[p] = (ROB_state[p]==`READY && ROB_mem_valid[p]) ? mem_addr[p] : 1;
@@ -348,8 +356,8 @@ module OOO(
   end endgenerate
 
   wire [`REG_LEN-1      :0] ROB_rd_data_wire[`ROB_SIZE-1:0]; // is_public = 0
-  wire [`ROB_SIZE-1     :0] ROB_taken_wire;                  // is_public = 1
-  wire [`MEMI_SIZE_LOG-1:0] ROB_next_pc_wire[`ROB_SIZE-1:0]; // is_public = 
+  wire [`ROB_SIZE-1     :0] ROB_taken_wire;
+  wire [`MEMI_SIZE_LOG-1:0] ROB_next_pc_wire[`ROB_SIZE-1:0];
 
   generate for (p=0; p <`ROB_SIZE; p=p+1) begin
   execute execute_instance(
